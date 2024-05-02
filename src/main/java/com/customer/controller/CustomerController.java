@@ -15,71 +15,46 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.customer.exception.CustomerAlreadyExistsException;
 import com.customer.exception.NoSuchCustomerExistsException;
 import com.customer.model.Customer;
-import com.customer.repository.CustomerRepo;
+import com.customer.service.CustomerService;
 
 @RestController
 @RequestMapping("customer/")
 public class CustomerController {
-
+	
 	@Autowired
-	private CustomerRepo customerRepo;
+	private CustomerService customerService;
 
 	@PostMapping("/add")
 	public Customer addCustomer(@RequestBody Customer customer) {
-
-//		check if customer already exist
-		if (customerRepo.existsByMobNum(customer.getMobNum())) {
-			throw new CustomerAlreadyExistsException(
-					"Customer already exists with the mobile number- " + customer.getMobNum());
-		}
-
-		else if (customerRepo.existsByEmail(customer.getEmail())) {
-			throw new CustomerAlreadyExistsException("Customer already exists with email- " + customer.getEmail());
-		}
-
-		else {
-			return customerRepo.save(customer);
-		}
+		return customerService.addCustomer(customer);
 	}
 
 	@GetMapping("/all")
 	public List<Customer> getAllCustomers() {
-		return customerRepo.findAll();
+		return customerService.getAllCustomers();
 	}
 
 	@GetMapping("/{id}")
 	public Customer getCustomerById(@PathVariable int id) {
-		return customerRepo.findById(id)
-				.orElseThrow(() -> new NoSuchCustomerExistsException("No customer present with id = " + id));
+		return customerService.getCustomerById(id);
 	}
 
 	@PutMapping("/update/{id}")
 	public ResponseEntity<Customer> updateCustomerById(@RequestBody Customer customer, @PathVariable int id) {
-		if (customerRepo.existsById(id)) {
-			Customer existingCustomer = customerRepo.findById(id).get();
-			existingCustomer.setName(customer.getName());
-			existingCustomer.setMobNum(customer.getMobNum());
-			existingCustomer.setEmail(customer.getEmail());
-			existingCustomer.setAddress(customer.getAddress());
-			customerRepo.save(existingCustomer);
-			return ResponseEntity.ok(existingCustomer);
-		} else {
-			throw new NoSuchCustomerExistsException("No Such Customer exists!");
-		}
+		return customerService.updateCustomerById(customer, id);
 	}
 
 	@DeleteMapping("/delete/{id}")
 	public ResponseEntity<Map<String, Boolean>> deleteCustomerById(@PathVariable int id) {
-		Customer existingCustomer = customerRepo.findById(id).orElse(null);
+		Customer existingCustomer = customerService.getCustomerById(id);
 		if (existingCustomer == null) {
 			throw new NoSuchCustomerExistsException("No Such Customer exists!");
 		}
 
 		else {
-			customerRepo.deleteById(id);
+			customerService.deleteCustomerById(id);
 			Map<String, Boolean> response = new HashMap<>();
 			response.put("deleted", Boolean.TRUE);
 			return ResponseEntity.ok(response);
